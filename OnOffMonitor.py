@@ -15,8 +15,9 @@ def GetData(address,path,postlist=[]):
     clientsocket.send(cmd)
     data = "".encode()
     while True:
-        data += clientsocket.recv(512)
+        newdata = clientsocket.recv(512)
         if len(newdata) < 1: break
+        data += newdata
     clientsocket.close()
     return data.decode()
 def ListToCsv(header,item):
@@ -27,15 +28,24 @@ def ListToCsv(header,item):
             if j+1 != len(item[i]): csv+=","
         if i+1 != len(item): csv+="\n"
     return csv
-class Settings():
-    devices=["192.168.0.169"]
 def GetSettings(path="settings.json"):
     f=open(path,"r")
     read = load(f)
-    print(f)
-    print(read)
     f.close()
+    return read
 def SaveSettings(path="settings.json"):
     f=open(path,"w")
-    dump(["192.168.0.169"],f)
+    dump(settings,f)
     f.close()
+class fonts():
+    h1=("Segoe UI",16)
+    h2=("Segoe UI",13)
+    p=("Segoe UI",11)
+def ValidateNumber(value):
+    if "." in value: return False
+    else:
+        try:
+            value = int(value)
+            if value < 1: return False
+            else: return True
+        except ValueError: return False
