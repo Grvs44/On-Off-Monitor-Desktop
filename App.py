@@ -1,33 +1,26 @@
-from socket import socket,AF_INET,SOCK_STREAM,SHUT_WR
-import pickle,json
-try: from tkinter import *
-except ModuleNotFoundError: from Tkinter import *
-def GetData(address,path,postlist=[]):
-    method = "GET"
-    if len(postlist)>0: method = "POST"
-    post = ""
-    for i in range(len(postlist)):
-        post+=str(postlist[i][0])+"="+str(postlist[i][1])
-        if i+1 != len(postlist): post+="&"
-    addressparts = address.split(":")
-    if len(addressparts) == 1: addressparts.append(80)
-    clientsocket = socket(AF_INET,SOCK_STREAM)
-    clientsocket.connect((addressparts[0], int(addressparts[1])))
-    cmd = (method+' '+path+' HTTP/1.1\r\n\r\n'+post).encode()
-    clientsocket.send(cmd)
-    data = "".encode()
-    while True:
-        data += clientsocket.recv(512)
-        if len(newdata) < 1: break
-    clientsocket.close()
-    return data.decode()
+from OnOffMonitor import *
+try:
+    from tkinter import *
+    from tkinter.filedialog import asksaveasfile
+except ModuleNotFoundError:
+    from Tkinter import *
+    from tkFileDialog import asksaveasfile
 def DownloadLog():
-    print("DL")
+    f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")])
+    if f != None:
+        test=GetData(settings.devices[0],"/log.csv?lognum="+lognumdl.get()+"&fileage="+fileagedl.get())
+        print(test)
+        f.write(test)
+        f.close()
+def DeleteLog():
+    pass
 window = Tk()
 window.title("On/Off Monitor")
 window.resizable(0,0)
 fileagedl = StringVar() #Fileage for download logs
 fileaged = StringVar() #Fileage for delete logs
+fileagedl.set("new")
+fileaged.set("old")
 Label(window,text="Log files").grid(row=1,column=1)
 Label(window,text="Download").grid(row=2,column=1)
 lognumdl = Entry(window)
@@ -38,4 +31,7 @@ Button(window,text="Download",command=DownloadLog).grid(row=6,column=1)
 Label(window,text="Delete").grid(row=7,column=1)
 lognumd = Entry(window)
 lognumd.grid(row=8,column=1)
+Radiobutton(window,text="Delete ^ of the oldest files",variable=fileaged,value="old").grid(row=9,column=1)
+Radiobutton(window,text="Keep ^ of the newest files",variable=fileaged,value="new").grid(row=10,column=1)
+Button(window,text="Delete",command=DeleteLog).grid(row=11,column=1)
 window.mainloop()

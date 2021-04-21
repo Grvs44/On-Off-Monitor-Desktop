@@ -1,2 +1,4 @@
 *.dat
 *.json
+__pycache__
+*.csv
