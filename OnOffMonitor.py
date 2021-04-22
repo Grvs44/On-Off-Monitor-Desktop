@@ -29,17 +29,20 @@ def ListToCsv(header,item):
         if i+1 != len(item): csv+="\n"
     return csv
 def GetSettings(path="settings.json"):
-    f=open(path,"r")
-    read = load(f)
-    f.close()
-    return read
-def SaveSettings(path="settings.json"):
+    try:
+        f=open(path,"r")
+        read = load(f)
+        f.close()
+        return read
+    except FileNotFoundError: return {"defaultip":None,"devices":[]}
+def SaveSettings(settings,path="settings.json"):
     f=open(path,"w")
     dump(settings,f)
     f.close()
 class fonts():
     h1=("Segoe UI",16)
     h2=("Segoe UI",13)
+    h3=("Segoe UI",12)
     p=("Segoe UI",11)
 def ValidateNumber(value):
     if "." in value: return False
