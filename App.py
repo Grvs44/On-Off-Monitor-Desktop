@@ -1,12 +1,14 @@
 from OnOffMonitor import *
 try:
-    from tkinter import Tk,StringVar,Label,Entry,Button,Radiobutton
+    from tkinter import Tk,StringVar,Label,Entry,Button,Radiobutton,Menu,Toplevel,Listbox
     from tkinter.filedialog import asksaveasfile
     from tkinter.messagebox import showinfo,askyesno,showerror
+    from tkinter.simpledialog import askstring
 except ModuleNotFoundError:
-    from Tkinter import *
+    from Tkinter import Tk,StringVar,Label,Entry,Button,Radiobutton,Menu,Toplevel,Listbox
     from tkFileDialog import asksaveasfile
     from tkMessageBox import showinfo,askyesno,showerror
+    from tkSimpleDialog import askstring
 def DownloadLog():
     validate = ValidateNumber(fileagedl.get())
     if validate:
@@ -31,10 +33,36 @@ def ShutDown():
     if askyesno("Shut down","Are you sure you want to shut down?"):
         try: showinfo("Shut down",GetData(devices[0],"/shutdown",postlist=[["devices",sddevice.get()],["web",sdweb.get()],["app","1"]]).split("\r\n\r\n")[1])
         except ConnectionRefusedError: showerror("Shutdown","Error: the device at " + devices[0] + " could not be reached")
+def AddMenubarCommands(menu,commands):
+    for command in commands:
+        if len(command) == 2: optionmenu.add_command(label=command[0],command=command[1])
+        else: menu.add_separator()
+def Settings():
+    page = Toplevel()
+    page.title("On/Off Monitor Settings")
+    page.resizable(0,0)
+    Label(page,text="Settings",font=fonts.h1).grid(row=1,column=1,columnspan=2)
+    Label(page,text="Devices",font=fonts.h2).grid(row=2,column=1,columnspan=2)
+    devicelist = Listbox(page)
+    devicelist.grid(row=3,column=1,columnspan=2)
+    Button(page,text="Add new").grid(row=4,column=1)
+    Button(page,text="Remove selected").grid(row=4,column=2)
+    for i in range(len(devices)): devicelist.add(i,devices[i])
+    page.mainloop()
+def AddDevice(listbox):
+    newip = askstring("Add device","Please enter the IP address with port number (if required) of the new device")
+    if ValidateIPAddress(newip):
+        devices.append(newip)
+        listbox.add(len(devices),newip)
 devices=GetSettings()
 window = Tk()
 window.title("On/Off Monitor")
-window.resizable(0,0)
+menubar = Menu(window)
+window.config(menu = menubar)
+optionmenu = Menu(menubar, tearoff = 0)
+AddMenubarCommands(optionmenu,[("Settings",Settings),(),("Exit",window.destroy)])
+menubar.add_cascade(label="Options", menu=optionmenu)
+
 fileagedl = StringVar() #Fileage for download logs
 fileaged = StringVar() #Fileage for delete logs
 sddevice = StringVar() #Shut down this or all devices
@@ -43,6 +71,7 @@ fileagedl.set("new")
 fileaged.set("old")
 sddevice.set("this")
 sdweb.set("web")
+
 Label(window,text="Log files",font=fonts.h1).grid(row=1,column=1)
 Label(window,text="Download",font=fonts.h2).grid(row=2,column=1)
 lognumdl = Entry(window,font=fonts.p)

@@ -49,3 +49,5 @@ def ValidateNumber(value):
             if value < 1: return False
             else: return True
         except ValueError: return False
+def ValidateIPAddress(value):
+    return value != None and value != "" and "." in value
