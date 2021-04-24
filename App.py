@@ -41,12 +41,13 @@ def Settings():
     page = Toplevel()
     page.title("On/Off Monitor Settings")
     page.resizable(0,0)
-    Label(page,text="Settings",font=fonts.h1).grid(row=1,column=1,columnspan=2)
-    Label(page,text="Devices",font=fonts.h2).grid(row=2,column=1,columnspan=2)
+    Label(page,text="Settings",font=fonts.h1).grid(row=1,column=1,columnspan=3)
+    Label(page,text="Devices",font=fonts.h2).grid(row=2,column=1,columnspan=3)
     devicelist = Listbox(page)
-    devicelist.grid(row=3,column=1,columnspan=2)
+    devicelist.grid(row=3,column=1,columnspan=3)
     Button(page,text="Add new",command=lambda:AddDevice(devicelist)).grid(row=4,column=1)
-    Button(page,text="Remove selected",command=lambda:RemoveDevice(devicelist,page)).grid(row=4,column=2)
+    Button(page,text="Remove selected",command=lambda:RemoveDevice(devicelist,page)).grid(row=4,column=3)
+    Button(page,text="Set as default device",command=lambda:SetDefaultDevice(devicelist,page)).grid(row=4,column=2)
     for i in range(len(settings["devices"])): devicelist.insert(i,FormatDeviceName(i))
     page.mainloop()
 def AddDevice(listbox):
@@ -65,18 +66,52 @@ def RemoveDevice(listbox,window):
         if askyesno("Remove device","Are you sure you want to delete "+listbox.get(index)+"?",parent=window):
             deleted = settings["devices"].pop(index)
             listbox.delete(index)
-            devicemenu.["menu"].delete(index)
+            devicemenu["menu"].delete(index)
             if deleted[1] == settings["defaultip"]:
                 if len(settings["devices"])==0: settings["defaultip"]=""
                 else: settings["defaultip"]=settings["devices"][0][1]
-            SaveSettings(settings) ##Change selection
-def DefaultIPSetup():
-    if settings["defaultip"] == "":
-        showinfo("On/Off Monitor","No devices have been set up. Please go to Options > Settings and set up at least one On/Off Monitor device.")
-        return False
-    else: return True
+            CheckDefaultDevice()
+            SaveSettings(settings)
+def LogFileList():
+    device = devsel.get()
+    page = Toplevel()
+    page.title(device + " log files - On/Off Monitor")
+    page.resizable(0,0)
+    Label(page,text=device + " log files").grid(row=1,column=1,columnspan=2)
+    devicelist = Listbox(page)
+    devicelist.grid(row=2,column=1,columnspan=2)
+    Button(page,text="Refresh",command=lambda:RefreshLogFileList(device,devicelist)).grid(row=3,column=1)
+    Button(page,text="Delete",command=lambda:DeleteLogFile(device,devicelist,page)).grid(row=3,column=2)
+    RefreshLogFileList(device,devicelist)
+    page.mainloop()
+def RefreshLogFileList(device,listbox):
+    data = GetData(DeviceIPAddress(device),"/logfilelist",postlist=[["app","1"]])##
+def DeleteLogFile(device,listbox,window):
+    index = listbox.curselection()
+    if len(index)>0:
+        index=index[0]
+        if askyesno("Delete log files","Are you sure you want to delete "+listbox.get(index)+"?",parent=window):
+            showinfo("Delete log files",GetData(DeviceIPAddress(device,"/deletelogfile",postlist=[["app","1"],["lognum",str(index)]])))
+            listbox.delete(index)
+def SetDefaultDevice(listbox,window):
+    index=listbox.curselection()
+    if len(index)>0:
+        index=index[0]
+        settings["defaultip"]=index
+        devsel.set(FormatDeviceName(index))
+        SaveSettings(settings)
+        showinfo("On/Off Monitor Settings",FormatDeviceName(index) + " was set as the default device",parent=window)
 def FormatDeviceName(index): return settings["devices"][index][0]+" ("+settings["devices"][index][1]+")"
-def CurrentDeviceIP(): return devsel.get().split("(")[1].split(")")[0]
+def DeviceIPAddress(device): return device.split("(")[1].split(")")[0]
+def CheckDefaultDevice():
+    if settings["defaultip"] not in range(len(settings["devices"])):
+        if len(settings["devices"]) == 0:
+            settings["defaultip"] = None
+            devsel.set("(No devices)")
+            showinfo("On/Off Monitor","No devices have been set up. Please go to Options > Settings and set up at least one On/Off Monitor device.")
+        else:
+            settings["defaultip"] = 0
+            devsel.set(FormatDeviceName(0))
 settings=GetSettings()
 window = Tk()
 window.title("On/Off Monitor")
@@ -122,4 +157,5 @@ Radiobutton(window,text="All devices",variable=sddevice,value="all",font=fonts.p
 Radiobutton(window,text="Web service",variable=sdweb,value="web",font=fonts.p).grid(row=6,column=2)
 Radiobutton(window,text="Web service and device",variable=sdweb,value="all",font=fonts.p).grid(row=7,column=2)
 Button(window,text="Shut down",command=ShutDown,font=fonts.p).grid(row=8,column=2)
+CheckDefaultDevice()
 window.mainloop()
