@@ -77,15 +77,19 @@ def LogFileList():
     page = Toplevel()
     page.title(device + " log files - On/Off Monitor")
     page.resizable(0,0)
-    Label(page,text=device + " log files").grid(row=1,column=1,columnspan=2)
+    Label(page,text=device + " log files").grid(row=1,column=1,columnspan=3)
     devicelist = Listbox(page)
-    devicelist.grid(row=2,column=1,columnspan=2)
+    devicelist.grid(row=2,column=1,columnspan=3)
     Button(page,text="Refresh",command=lambda:RefreshLogFileList(device,devicelist)).grid(row=3,column=1)
     Button(page,text="Delete",command=lambda:DeleteLogFile(device,devicelist,page)).grid(row=3,column=2)
+    Button(page,text="Open",command=lambda:OpenLogFile(device,devicelist)).grid(row=3,column=3)
     RefreshLogFileList(device,devicelist)
     page.mainloop()
 def RefreshLogFileList(device,listbox):
-    data = GetData(DeviceIPAddress(device),"/logfilelist",postlist=[["app","1"]])##
+    data = GetData(DeviceIPAddress(device),"/logfilelist",postlist=[["app","1"]])
+    listbox.delete(0,"end")
+    for i in range(len(data)):
+        listbox.add(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
 def DeleteLogFile(device,listbox,window):
     index = listbox.curselection()
     if len(index)>0:
@@ -93,6 +97,12 @@ def DeleteLogFile(device,listbox,window):
         if askyesno("Delete log files","Are you sure you want to delete "+listbox.get(index)+"?",parent=window):
             showinfo("Delete log files",GetData(DeviceIPAddress(device,"/deletelogfile",postlist=[["app","1"],["lognum",str(index)]])))
             listbox.delete(index)
+def OpenLogFile(device,listbox):
+    index = listbox.curselection()
+    if len(index)>0:
+        index = index[0]
+        data = GetData(DeviceIPAddress(device),"/logfile",postlist=[["lognum",str(index)],["app","1"]])
+        print(ListToCsv(data.split("\r\n\r\n")[1]))
 def SetDefaultDevice(listbox,window):
     index=listbox.curselection()
     if len(index)>0:
@@ -135,6 +145,7 @@ Label(window,text="On/Off Monitor",font=fonts.h1).grid(row=1,column=1,columnspan
 Label(window,text="Devices",font=fonts.h2).grid(row=2,column=3,rowspan=2)
 devicemenu = OptionMenu(window,devsel,*settings["devices"])
 devicemenu.grid(row=4,column=3)
+Button(window,text="Log file list",command=LogFileList).grid(row=5,column=3)
 
 Label(window,text="Log files",font=fonts.h2).grid(row=2,column=1)
 Label(window,text="Download",font=fonts.h3).grid(row=3,column=1)
