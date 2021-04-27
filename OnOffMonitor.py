@@ -35,7 +35,7 @@ def GetSettings(path="settings.json"):
         f.close()
         return read
     except FileNotFoundError: return {"defaultip":None,"devices":[]}
-def SaveSettings(settings,path="settings.json"):
+def SaveSettings(path="settings.json"):
     f=open(path,"w")
     dump(settings,f)
     f.close()
@@ -54,3 +54,6 @@ def ValidateNumber(value):
         except ValueError: return False
 def ValidateIPAddress(value):
     return value != None and value != "" and "." in value
+def FormatDeviceName(index): return settings["devices"][index][0]+" ("+settings["devices"][index][1]+")"
+def DeviceIPAddress(device): return device.split("(")[1].split(")")[0]
+def ConnectionRefused(device): showerror("On/Off Monitor",device + " could not be reached. Please check that it is running On/Off Monitor and connected to the same network.")

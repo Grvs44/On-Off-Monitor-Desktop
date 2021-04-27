@@ -15,24 +15,24 @@ def DownloadLog():
         f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")])
         if f != None:
             try:
-                f.write(GetData(GetCurrentDeviceIP(),"/log.csv",postlist=[["lognum",lognumdl.get()],["fileage",fileagedl.get()]]).split("\r\n\r\n")[1])
+                f.write(GetData(DeviceIPAddress(devsel.get()),"/log.csv",postlist=[["lognum",lognumdl.get()],["fileage",fileagedl.get()]]).split("\r\n\r\n")[1])
                 f.close()
                 showinfo("Download log file","Log file downloaded to " + f.name)
-            except ConnectionRefusedError: showerror("Download log file",devsel.get() + " could not be reached")
+            except ConnectionRefusedError: ConnectionRefused(devsel.get())
     else:
         showerror("Download log file","The number of log files must be a positive integer")
 def DeleteLog():
     validate = ValidateNumber(fileaged.get())
     if validate:
         if askyesno("Delete log files","Are you sure you want to delete the chosen log files?"):
-            try: showinfo("Delete log files",GetData(GetCurrentDeviceIP(),"/deletelogs",postlist=[["lognum",lognumd.get()],["fileage",fileaged.get()],["app","1"]]).split("\r\n\r\n")[1])
-            except ConnectionRefusedError: showerror("Shutdown",devsel.get() + " could not be reached")
+            try: showinfo("Delete log files",GetData(DeviceIPAddress(devsel.get()),"/deletelogs",postlist=[["lognum",lognumd.get()],["fileage",fileaged.get()],["app","1"]]).split("\r\n\r\n")[1])
+            except ConnectionRefusedError: ConnectionRefused(devsel.get())
     else:
         showerror("Delete log filed","The number of log files must be a positive integer")
 def ShutDown():
     if askyesno("Shut down","Are you sure you want to shut down?"):
-        try: showinfo("Shut down",GetData(GetCurrentDeviceIP(),"/shutdown",postlist=[["devices",sddevice.get()],["web",sdweb.get()],["app","1"]]).split("\r\n\r\n")[1])
-        except ConnectionRefusedError: showerror("Shutdown",devsel.get() + " could not be reached")
+        try: showinfo("Shut down",GetData(DeviceIPAddress(devsel.get()),"/shutdown",postlist=[["devices",sddevice.get()],["web",sdweb.get()],["app","1"]]).split("\r\n\r\n")[1])
+        except ConnectionRefusedError: ConnectionRefused(devsel.get())
 def AddMenubarCommands(menu,commands):
     for command in commands:
         if len(command) == 2: menu.add_command(label=command[0],command=command[1])
@@ -57,7 +57,7 @@ def AddDevice(listbox):
         if ValidateIPAddress(newip):
             settings["devices"].append([newname,newip])
             listbox.insert(len(settings["devices"]),newname+" ("+newip+")")
-            SaveSettings(settings)
+            SaveSettings()
             devicemenu["menu"].add_command(FormatDeviceName(len(settings["devices"])-1))
 def RemoveDevice(listbox,window):
     index=listbox.curselection()
@@ -68,10 +68,10 @@ def RemoveDevice(listbox,window):
             listbox.delete(index)
             devicemenu["menu"].delete(index)
             if deleted[1] == settings["defaultip"]:
-                if len(settings["devices"])==0: settings["defaultip"]=""
-                else: settings["defaultip"]=settings["devices"][0][1]
+                if len(settings["devices"])==0: settings["defaultip"]=None
+                else: settings["defaultip"]=0
             CheckDefaultDevice()
-            SaveSettings(settings)
+            SaveSettings()
 def LogFileList():
     device = devsel.get()
     page = Toplevel()
@@ -86,33 +86,37 @@ def LogFileList():
     RefreshLogFileList(device,devicelist)
     page.mainloop()
 def RefreshLogFileList(device,listbox):
-    data = GetData(DeviceIPAddress(device),"/logfilelist",postlist=[["app","1"]])
-    listbox.delete(0,"end")
-    for i in range(len(data)):
-        listbox.add(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
+    try:
+        data = GetData(DeviceIPAddress(device),"/logfilelist",postlist=[["app","1"]])
+        listbox.delete(0,"end")
+        for i in range(len(data)):
+            listbox.add(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
+    except ConnectionRefusedError: ConnectionRefused(device)
 def DeleteLogFile(device,listbox,window):
     index = listbox.curselection()
     if len(index)>0:
         index=index[0]
         if askyesno("Delete log files","Are you sure you want to delete "+listbox.get(index)+"?",parent=window):
-            showinfo("Delete log files",GetData(DeviceIPAddress(device,"/deletelogfile",postlist=[["app","1"],["lognum",str(index)]])))
-            listbox.delete(index)
+            try:
+                showinfo("Delete log files",GetData(DeviceIPAddress(device,"/deletelogfile",postlist=[["app","1"],["lognum",str(index)]])))
+                listbox.delete(index)
+            except ConnectionRefusedError: ConnectionRefused(device)
 def OpenLogFile(device,listbox):
     index = listbox.curselection()
     if len(index)>0:
         index = index[0]
-        data = GetData(DeviceIPAddress(device),"/logfile",postlist=[["lognum",str(index)],["app","1"]])
-        print(ListToCsv(data.split("\r\n\r\n")[1]))
+        try:
+            data = GetData(DeviceIPAddress(device),"/logfile",postlist=[["lognum",str(index)],["app","1"]])
+            print(ListToCsv(data.split("\r\n\r\n")[1]))
+        except ConnectionRefusedError: ConnectionRefused(device)
 def SetDefaultDevice(listbox,window):
     index=listbox.curselection()
     if len(index)>0:
         index=index[0]
         settings["defaultip"]=index
         devsel.set(FormatDeviceName(index))
-        SaveSettings(settings)
+        SaveSettings()
         showinfo("On/Off Monitor Settings",FormatDeviceName(index) + " was set as the default device",parent=window)
-def FormatDeviceName(index): return settings["devices"][index][0]+" ("+settings["devices"][index][1]+")"
-def DeviceIPAddress(device): return device.split("(")[1].split(")")[0]
 def CheckDefaultDevice():
     if settings["defaultip"] not in range(len(settings["devices"])):
         if len(settings["devices"]) == 0:
