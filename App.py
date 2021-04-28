@@ -88,9 +88,12 @@ def LogFileList():
 def RefreshLogFileList(device,listbox):
     try:
         data = GetData(DeviceIPAddress(device),"/logfilelist",postlist=[["app","1"]])
+        print(data)
+        print(data.split("\r\n\r\n"))
+        data = loads(GetBody(data))
+        print("Data:\t"+str(data))
         listbox.delete(0,"end")
-        for i in range(len(data)):
-            listbox.add(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
+        for i in range(len(data)): listbox.insert(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
     except ConnectionRefusedError: ConnectionRefused(device)
 def DeleteLogFile(device,listbox,window):
     index = listbox.curselection()
@@ -98,7 +101,7 @@ def DeleteLogFile(device,listbox,window):
         index=index[0]
         if askyesno("Delete log files","Are you sure you want to delete "+listbox.get(index)+"?",parent=window):
             try:
-                showinfo("Delete log files",GetData(DeviceIPAddress(device,"/deletelogfile",postlist=[["app","1"],["lognum",str(index)]])))
+                showinfo("Delete log files",GetBody(GetData(DeviceIPAddress(device,"/deletelogfile",postlist=[["app","1"],["lognum",str(index)]]))))
                 listbox.delete(index)
             except ConnectionRefusedError: ConnectionRefused(device)
 def OpenLogFile(device,listbox):
@@ -106,8 +109,8 @@ def OpenLogFile(device,listbox):
     if len(index)>0:
         index = index[0]
         try:
-            data = GetData(DeviceIPAddress(device),"/logfile",postlist=[["lognum",str(index)],["app","1"]])
-            print(ListToCsv(data.split("\r\n\r\n")[1]))
+            data = loads(GetBody(GetData(DeviceIPAddress(device),"/logfile",[["lognum",str(index)],["app","1"]])))
+            print(ListToCsv(data))
         except ConnectionRefusedError: ConnectionRefused(device)
 def SetDefaultDevice(listbox,window):
     index=listbox.curselection()
@@ -126,7 +129,6 @@ def CheckDefaultDevice():
         else:
             settings["defaultip"] = 0
             devsel.set(FormatDeviceName(0))
-settings=GetSettings()
 window = Tk()
 window.title("On/Off Monitor")
 menubar = Menu(window)
