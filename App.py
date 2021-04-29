@@ -110,7 +110,7 @@ def OpenLogFile(device,listbox):
         index = index[0]
         try:
             data = loads(GetBody(GetData(DeviceIPAddress(device),"/logfile",[["lognum",str(index)],["app","1"]])))
-            print(ListToCsv(data))
+            print(ListToCsv("Date,Time,Device,Status",data))
         except ConnectionRefusedError: ConnectionRefused(device)
 def SetDefaultDevice(listbox,window):
     index=listbox.curselection()
