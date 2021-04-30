@@ -88,10 +88,7 @@ def LogFileList():
 def RefreshLogFileList(device,listbox):
     try:
         data = GetData(DeviceIPAddress(device),"/logfilelist",postlist=[["app","1"]])
-        print(data)
-        print(data.split("\r\n\r\n"))
         data = loads(GetBody(data))
-        print("Data:\t"+str(data))
         listbox.delete(0,"end")
         for i in range(len(data)): listbox.insert(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
     except ConnectionRefusedError: ConnectionRefused(device)
@@ -101,17 +98,21 @@ def DeleteLogFile(device,listbox,window):
         index=index[0]
         if askyesno("Delete log files","Are you sure you want to delete "+listbox.get(index)+"?",parent=window):
             try:
-                showinfo("Delete log files",GetBody(GetData(DeviceIPAddress(device,"/deletelogfile",postlist=[["app","1"],["lognum",str(index)]]))))
+                showinfo("Delete log files",GetBody(GetData(DeviceIPAddress(device),"/deletelocallog",postlist=[["app","1"],["lognum",str(index)]])))
                 listbox.delete(index)
             except ConnectionRefusedError: ConnectionRefused(device)
 def OpenLogFile(device,listbox):
     index = listbox.curselection()
     if len(index)>0:
         index = index[0]
-        try:
-            data = loads(GetBody(GetData(DeviceIPAddress(device),"/logfile",[["lognum",str(index)],["app","1"]])))
-            print(ListToCsv("Date,Time,Device,Status",data))
-        except ConnectionRefusedError: ConnectionRefused(device)
+        f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")])
+        if f != None:
+            try:
+                data = loads(GetBody(GetData(DeviceIPAddress(device),"/logfile",[["lognum",str(index)],["app","1"]])))
+                f.write(ListToCsv("Date,Time,Device,Status",data))
+                showinfo("Open log file","Log file saved to "+f.name)
+            except ConnectionRefusedError: ConnectionRefused(device)
+            f.close()
 def SetDefaultDevice(listbox,window):
     index=listbox.curselection()
     if len(index)>0:
