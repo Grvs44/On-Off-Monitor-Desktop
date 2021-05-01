@@ -40,10 +40,10 @@ def SaveSettings(path="settings.json"):
     dump(settings,f)
     f.close()
 class fonts():
-    h1=("Segoe UI",16)
-    h2=("Segoe UI",13)
-    h3=("Segoe UI",12)
-    p=("Segoe UI",11)
+    h1=("Segoe UI",24)
+    h2=("Segoe UI",16)
+    h3=("Segoe UI",13)
+    p=("Segoe UI",10)
 def ValidateNumber(value):
     if "." in value: return False
     else:
