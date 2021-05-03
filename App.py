@@ -79,7 +79,7 @@ def LogFileList():
     page.title(device + " log files - On/Off Monitor")
     page.resizable(0,0)
     Label(page,text=device + " log files",font=fonts.h1).grid(row=1,column=1,columnspan=3)
-    devicelist = Listbox(page,font=fonts.p)
+    devicelist = Listbox(page,font=fonts.p,selectmode="multiple")
     devicelist.grid(row=2,column=1,columnspan=3)
     Button(page,text="Refresh",font=fonts.p,command=lambda:RefreshLogFileList(device,devicelist)).grid(row=3,column=1)
     Button(page,text="Delete",font=fonts.p,command=lambda:DeleteLogFile(device,devicelist,page)).grid(row=3,column=2)
@@ -94,22 +94,26 @@ def RefreshLogFileList(device,listbox):
         for i in range(len(data)): listbox.insert(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
     except ConnectionRefusedError: ConnectionRefused(device)
 def DeleteLogFile(device,listbox,window):
-    index = listbox.curselection()
-    if len(index)>0:
-        index=index[0]
-        if askyesno("Delete log files","Are you sure you want to delete "+listbox.get(index)+"?",parent=window):
-            try:
-                showinfo("Delete log files",GetBody(GetData(DeviceIPAddress(device),"/deletelocallog",postlist=[["app","1"],["lognum",str(index)]])),parent=window)
-                listbox.delete(index)
-            except ConnectionRefusedError: ConnectionRefused(device)
+    if len(listbox.curselection())>0:
+        if askyesno("Delete log files","Are you sure you want to delete the selected items?",parent=window):  
+            response=""
+            index=list(listbox.curselection())
+            print(index)
+            for i in range(len(index)):
+                index[i]-=i
+                try:
+                    response+=GetBody(GetData(DeviceIPAddress(device),"/deletelocallog",postlist=[["app","1"],["lognum",str(index[i])]]))+"\n"
+                    listbox.delete(index[i])
+                except ConnectionRefusedError: ConnectionRefused(device)
+            showinfo("Delete log files",response,parent=window)
 def OpenLogFile(device,listbox):
-    index = listbox.curselection()
-    if len(index)>0:
-        index = index[0]
+    selection = listbox.curselection()
+    if len(selection)>0:
         f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")])
         if f != None:
             try:
-                data = loads(GetBody(GetData(DeviceIPAddress(device),"/logfile",[["lognum",str(index)],["app","1"]])))
+                data=[]
+                for index in selection: data.extend(loads(GetBody(GetData(DeviceIPAddress(device),"/logfile",[["lognum",str(index)],["app","1"]]))))
                 f.write(ListToCsv("Date,Time,Device,Status",data))
                 showinfo("Open log file","Log file saved to "+f.name)
             except ConnectionRefusedError: ConnectionRefused(device)
