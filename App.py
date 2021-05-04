@@ -12,16 +12,16 @@ except ImportError:
 def DownloadLog():
     validate = ValidateNumber(lognumdl.get())
     if validate:
-        f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")])
+        f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")],parent=window)
         if f != None:
             try:
                 print(lognumdl.get())
                 f.write(GetData(DeviceIPAddress(devsel.get()),"/log.csv",postlist=[["lognum",lognumdl.get()],["fileage",fileagedl.get()]]).split("\r\n\r\n")[1])
                 f.close()
                 showinfo("Download log file","Log file downloaded to " + f.name)
-            except ConnectionRefusedError: ConnectionRefused(devsel.get())
+            except ConnectionRefusedError: ConnectionRefused(devsel.get(),window)
     else:
-        showerror("Download log file","The number of log files must be a positive integer")
+        showerror("Download log file","The number of log files must be a positive integer",parent=window)
 def DeleteLog():
     validate = ValidateNumber(lognumd.get())
     if validate:
@@ -29,7 +29,7 @@ def DeleteLog():
             try: showinfo("Delete log files",GetData(DeviceIPAddress(devsel.get()),"/deletelogs",postlist=[["lognum",lognumd.get()],["fileage",fileaged.get()],["app","1"]]).split("\r\n\r\n")[1])
             except ConnectionRefusedError: ConnectionRefused(devsel.get())
     else:
-        showerror("Delete log filed","The number of log files must be a positive integer")
+        showerror("Delete log filed","The number of log files must be a positive integer",parent=window)
 def ShutDown():
     if askyesno("Shut down","Are you sure you want to shut down?"):
         try: showinfo("Shut down",GetData(DeviceIPAddress(devsel.get()),"/shutdown",postlist=[["devices",sddevice.get()],["web",sdweb.get()],["app","1"]]).split("\r\n\r\n")[1])
@@ -44,7 +44,7 @@ def Settings():
     page.resizable(0,0)
     Label(page,text="Settings",font=fonts.h1).grid(row=1,column=1,columnspan=3)
     Label(page,text="Devices",font=fonts.h2).grid(row=2,column=1,columnspan=3)
-    devicelist = Listbox(page,font=fonts.p)
+    devicelist = Listbox(page,font=fonts.p,selectmode="multiple")
     devicelist.grid(row=3,column=1,columnspan=3)
     Button(page,text="Add new",font=fonts.p,command=lambda:AddDevice(devicelist)).grid(row=4,column=1)
     Button(page,text="Remove selected",font=fonts.p,command=lambda:RemoveDevice(devicelist,page)).grid(row=4,column=3)
@@ -63,16 +63,18 @@ def AddDevice(listbox):
 def RemoveDevice(listbox,window):
     index=listbox.curselection()
     if len(index)>0:
-        index=index[0]
-        if askyesno("Remove device","Are you sure you want to delete "+listbox.get(index)+"?",parent=window):
-            deleted = settings["devices"].pop(index)
-            listbox.delete(index)
-            devicemenu["menu"].delete(index)
-            if deleted[1] == settings["defaultip"]:
-                if len(settings["devices"])==0: settings["defaultip"]=None
-                else: settings["defaultip"]=0
-            CheckDefaultDevice()
+        if askyesno("Remove device","Are you sure you want to delete the selected devices?",parent=window):
+            deleted = "Removed device(s):"
+            for i in range(len(index)-1,-1,-1):
+                delitem=settings["devices"].pop(index[i])
+                deleted += "\n" + delitem[0] + " (" + delitem[1] + ")"
+                listbox.delete(index[i])
+                devicemenu["menu"].delete(index[i])
+            if settings["defaultip"] in index:
+                CheckDefaultDevice(updated=True)
+                deleted+="\nSet "+FormatDeviceName(0)+" as the default device"
             SaveSettings()
+            showinfo("Remove device",deleted,parent=window)
 def LogFileList():
     device = devsel.get()
     page = Toplevel()
@@ -81,18 +83,19 @@ def LogFileList():
     Label(page,text=device + " log files",font=fonts.h1).grid(row=1,column=1,columnspan=3)
     devicelist = Listbox(page,font=fonts.p,selectmode="multiple")
     devicelist.grid(row=2,column=1,columnspan=3)
-    Button(page,text="Refresh",font=fonts.p,command=lambda:RefreshLogFileList(device,devicelist)).grid(row=3,column=1)
+    Button(page,text="Refresh",font=fonts.p,command=lambda:RefreshLogFileList(device,devicelist,page)).grid(row=3,column=1)
     Button(page,text="Delete",font=fonts.p,command=lambda:DeleteLogFile(device,devicelist,page)).grid(row=3,column=2)
-    Button(page,text="Open",font=fonts.p,command=lambda:OpenLogFile(device,devicelist)).grid(row=3,column=3)
-    RefreshLogFileList(device,devicelist)
+    Button(page,text="Open",font=fonts.p,command=lambda:OpenLogFile(device,devicelist,page)).grid(row=3,column=3)
+    RefreshLogFileList(device,devicelist,page)
+    if devicelist.size() == 0: page.destroy()
     page.mainloop()
-def RefreshLogFileList(device,listbox):
+def RefreshLogFileList(device,listbox,window):
     try:
         data = GetData(DeviceIPAddress(device),"/logfilelist",postlist=[["app","1"]])
         data = loads(GetBody(data))
         listbox.delete(0,"end")
         for i in range(len(data)): listbox.insert(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
-    except ConnectionRefusedError: ConnectionRefused(device)
+    except ConnectionRefusedError: ConnectionRefused(device,window)
 def DeleteLogFile(device,listbox,window):
     if len(listbox.curselection())>0:
         if askyesno("Delete log files","Are you sure you want to delete the selected items?",parent=window):  
@@ -103,9 +106,9 @@ def DeleteLogFile(device,listbox,window):
                 try:
                     response+=GetBody(GetData(DeviceIPAddress(device),"/deletelocallog",postlist=[["app","1"],["lognum",str(index[i])]]))+"\n"
                     listbox.delete(index[i])
-                except ConnectionRefusedError: ConnectionRefused(device)
+                except ConnectionRefusedError: ConnectionRefused(device,window)
             showinfo("Delete log files",response,parent=window)
-def OpenLogFile(device,listbox):
+def OpenLogFile(device,listbox,window):
     selection = listbox.curselection()
     if len(selection)>0:
         f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")])
@@ -115,7 +118,7 @@ def OpenLogFile(device,listbox):
                 for index in selection: data.extend(loads(GetBody(GetData(DeviceIPAddress(device),"/logfile",[["lognum",str(index)],["app","1"]]))))
                 f.write(ListToCsv("Date,Time,Device,Status",data))
                 showinfo("Open log file","Log file saved to "+f.name)
-            except ConnectionRefusedError: ConnectionRefused(device)
+            except ConnectionRefusedError: ConnectionRefused(device,window)
             f.close()
 def SetDefaultDevice(listbox,window):
     index=listbox.curselection()
@@ -125,8 +128,8 @@ def SetDefaultDevice(listbox,window):
         devsel.set(FormatDeviceName(index))
         SaveSettings()
         showinfo("On/Off Monitor Settings",FormatDeviceName(index) + " was set as the default device",parent=window)
-def CheckDefaultDevice():
-    if settings["defaultip"] not in range(len(settings["devices"])):
+def CheckDefaultDevice(updated=False):
+    if updated or settings["defaultip"] not in range(len(settings["devices"])):
         if len(settings["devices"]) == 0:
             settings["defaultip"] = None
             devsel.set("(No devices)")
@@ -138,7 +141,7 @@ def UpdateDeleteText(e):
     delrad1.config(text="Delete "+lognumd.get()+" of the oldest files")
     delrad2.config(text="Keep "+lognumd.get()+" of the newest files")
     print("Lognumdlget:\t"+lognumd.get())
-def ConnectionRefused(device): showerror("On/Off Monitor",device + " could not be reached. Please check that it is running On/Off Monitor and connected to the same network.")
+def ConnectionRefused(device,window): showerror("On/Off Monitor",device + " could not be reached. Please check that it is running On/Off Monitor and connected to the same network.",parent=window)
 window = Tk()
 window.title("On/Off Monitor")
 menubar = Menu(window,font=fonts.p)
