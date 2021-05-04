@@ -99,8 +99,7 @@ def DeleteLogFile(device,listbox,window):
             response=""
             index=list(listbox.curselection())
             print(index)
-            for i in range(len(index)):
-                index[i]-=i
+            for i in range(len(index)-1,-1,-1):
                 try:
                     response+=GetBody(GetData(DeviceIPAddress(device),"/deletelocallog",postlist=[["app","1"],["lognum",str(index[i])]]))+"\n"
                     listbox.delete(index[i])
@@ -139,6 +138,7 @@ def UpdateDeleteText(e):
     delrad1.config(text="Delete "+lognumd.get()+" of the oldest files")
     delrad2.config(text="Keep "+lognumd.get()+" of the newest files")
     print("Lognumdlget:\t"+lognumd.get())
+def ConnectionRefused(device): showerror("On/Off Monitor",device + " could not be reached. Please check that it is running On/Off Monitor and connected to the same network.")
 window = Tk()
 window.title("On/Off Monitor")
 menubar = Menu(window,font=fonts.p)

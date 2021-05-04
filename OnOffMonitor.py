@@ -56,6 +56,5 @@ def ValidateIPAddress(value):
     return value != None and value != "" and "." in value
 def FormatDeviceName(index): return settings["devices"][index][0]+" ("+settings["devices"][index][1]+")"
 def DeviceIPAddress(device): return device.split("(")[1].split(")")[0]
-def ConnectionRefused(device): showerror("On/Off Monitor",device + " could not be reached. Please check that it is running On/Off Monitor and connected to the same network.")
 def GetBody(response): return response.split("\r\n\r\n")[1]
 settings=GetSettings()
