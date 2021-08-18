@@ -1,14 +1,4 @@
-from OnOffMonitor import *
-try:
-    from tkinter import *
-    from tkinter.filedialog import asksaveasfile
-    from tkinter.messagebox import showinfo,askyesno,showerror
-    from tkinter.simpledialog import askstring
-except ImportError:
-    from Tkinter import *
-    from tkFileDialog import asksaveasfile
-    from tkMessageBox import showinfo,askyesno,showerror
-    from tkSimpleDialog import askstring
+from LiveStatus import *
 def DownloadLog():
     validate = ValidateNumber(lognumdl.get())
     if validate:
@@ -169,6 +159,7 @@ def UpdateDeleteText(e):
 def ConnectionRefused(device,window): showerror("On/Off Monitor",device + " could not be reached. Please check that it is running On/Off Monitor and connected to the same network.",parent=window)
 window = Tk()
 window.title("On/Off Monitor")
+print(window.wm_iconwindow())
 menubar = Menu(window,font=fonts.p)
 window.config(menu = menubar)
 optionsmenu = Menu(menubar, tearoff = 0)
@@ -219,5 +210,7 @@ Radiobutton(window,text="All devices",variable=sddevice,value="all",font=fonts.p
 Radiobutton(window,text="On/Off Monitor",variable=sdweb,value="web",font=fonts.p).grid(row=6,column=2)
 Radiobutton(window,text="On/Off Monitor and device",variable=sdweb,value="all",font=fonts.p).grid(row=7,column=2)
 Button(window,text="Shut down",command=ShutDown,font=fonts.p).grid(row=8,column=2)
+
+Button(window,text="Live Device Status",font=fonts.p,command=lambda:Status(window)).grid(row=8,column=3)
 CheckDefaultDevice()
 window.mainloop()

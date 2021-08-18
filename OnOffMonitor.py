@@ -1,5 +1,15 @@
 from socket import socket,AF_INET,SOCK_STREAM,SHUT_WR
 from json import loads,load,dump
+try:
+    from tkinter import *
+    from tkinter.filedialog import asksaveasfile
+    from tkinter.messagebox import showinfo,askyesno,showerror
+    from tkinter.simpledialog import askstring
+except ImportError:
+    from Tkinter import *
+    from tkFileDialog import asksaveasfile
+    from tkMessageBox import showinfo,askyesno,showerror
+    from tkSimpleDialog import askstring
 def GetData(address,path,postlist=[]):
     method = "GET"
     if len(postlist)>0: method = "POST"
