@@ -1,6 +1,10 @@
 from OnOffMonitor import *
 from time import sleep
-def Status(parent=None):
+def Status(devsel):
+    ipaddress = DeviceIPAddress(devsel.get())
+    if not ValidateIPAddress(ipaddress):
+        showerror("Live Device Status - On/Off Monitor","Invalid IP Address")
+        return
     from threading import Thread
     win = Tk()
     win.title("Live Device Status - On/Off Monitor")
@@ -20,14 +24,14 @@ def Status(parent=None):
     table[0].grid(row=4,column=1,sticky="NSEW")
     table[1].grid(row=4,column=2,sticky="NSEW")
     #scroll.grid(row=3,column=3,rowspan=2,sticky="NSEW")
-    Thread(target=RequestStatus,args=(win,table,refresh)).start()
+    Thread(target=RequestStatus,args=(win,table,refresh,ipaddress)).start()
     win.mainloop()
-def RequestStatus(win,table,refresh):
+def RequestStatus(win,table,refresh,ipaddress):
     try:
         while True:
             table[0].delete(0,END)
             table[1].delete(0,END)
-            data = loads(GetData("192.168.0.139","/status/status.json").split("\r\n\r\n")[1])
+            data = loads(GetBody(GetData(ipaddress,"/status/status.json")))
             for i in range(len(data)):
                 for j in [0,1]:
                     table[j].insert(i,data[i][j])

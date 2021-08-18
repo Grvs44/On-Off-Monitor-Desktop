@@ -211,6 +211,6 @@ Radiobutton(window,text="On/Off Monitor",variable=sdweb,value="web",font=fonts.p
 Radiobutton(window,text="On/Off Monitor and device",variable=sdweb,value="all",font=fonts.p).grid(row=7,column=2)
 Button(window,text="Shut down",command=ShutDown,font=fonts.p).grid(row=8,column=2)
 
-Button(window,text="Live Device Status",font=fonts.p,command=lambda:Status(window)).grid(row=8,column=3)
+Button(window,text="Live Device Status",font=fonts.p,command=lambda:Status(devsel)).grid(row=8,column=3)
 CheckDefaultDevice()
 window.mainloop()
