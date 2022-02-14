@@ -20,7 +20,7 @@ def DeleteLog():
             try: showinfo("Delete log files",GetData(DeviceIPAddress(devsel.get()),"/deletelogs",postlist=[["lognum",lognumd.get()],["fileage",fileaged.get()],["app","1"]]).split("\r\n\r\n")[1])
             except ConnectionRefusedError: ConnectionRefused(devsel.get(),window)
     else:
-        showerror("Delete log filed","The number of log files must be a positive integer",parent=window)
+        showerror("Delete log files","The number of log files must be a positive integer",parent=window)
 def ShutDown():
     if askyesno("Shut down","Are you sure you want to shut down?"):
         try: showinfo("Shut down",GetData(DeviceIPAddress(devsel.get()),"/shutdown",postlist=[["devices",sddevice.get()],["web",sdweb.get()],["app","1"]]).split("\r\n\r\n")[1])
@@ -202,6 +202,25 @@ def sleeptime(refresh):
         if number < 0.05: return 10
         else: return number
     except ValueError: return 10
+
+def TestPins():
+    ipaddress = DeviceIpAddress(devsel.get())
+    try:
+        window = Tk()
+        window.title("Test pins - On/Off Monitor")
+        Label(window,text="Test pins").grid(row=1,column=1,sticky="NSEW")
+        pinlist = Listbox(window)
+        pinlist.grid(row=2,column=1,sticky="NSEW")
+        pins = json.loads(GetData(ipaddress,"/pinnames"))
+        for pin in pinnames:
+            pins.insert(len(pinnames),pin)
+        Button(window,text="Set",command=lambda:SendPinRequest(ipaddress,pinlist)).grid(row=3,column=1,sticky="NSEW")
+        status = Label(window)
+        status.grid(row=4,column=1,sticky="NSEW")
+def SendPinRequest(ipaddress,pinlist):
+    code = ""
+    for i in range(len(pinnam:
+        code += GetData(ipaddress,"/pinaccess",[["state","1"]])#
 
 window = Tk()
 window.title("On/Off Monitor")
