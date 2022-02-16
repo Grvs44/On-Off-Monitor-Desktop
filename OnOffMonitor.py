@@ -39,12 +39,13 @@ def ListToCsv(header,item):
         if i+1 != len(item): csv+="\n"
     return csv
 def GetSettings(path="settings.json"):
+    read = {"defaultip":None,"devices":[],"id":""}
     try:
         f=open(path,"r")
-        read = load(f)
+        read.update(load(f))
         f.close()
-        return read
-    except FileNotFoundError: return {"defaultip":None,"devices":[]}
+    except FileNotFoundError: pass
+    return read 
 def SaveSettings(path="settings.json"):
     f=open(path,"w")
     dump(settings,f)

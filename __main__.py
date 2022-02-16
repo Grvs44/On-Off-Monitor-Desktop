@@ -42,19 +42,27 @@ def Settings():
     page.grid_columnconfigure(3,weight=1)
     page.grid_columnconfigure(4,weight=0)
     Label(page,text="Settings",font=fonts.h1).grid(row=1,column=1,columnspan=3,sticky="NSEW")
-    Label(page,text="Devices",font=fonts.h2).grid(row=2,column=1,columnspan=3,sticky="NSEW")
+    Label(page,text="This device ID",font=fonts.p).grid(row=2,column=1,sticky="NSEW")
+    deviceid = StringVar()
+    deviceidentry = Entry(page,font=fonts.p,textvariable=StringVar())
+    deviceidentry.grid(row=2,column=2,columnspan=2,sticky="NSEW")
+    deviceidentry.insert(0,settings["id"])
+    Label(page,text="Devices",font=fonts.h2).grid(row=3,column=1,columnspan=3,sticky="NSEW")
     devicelist = Listbox(page,font=fonts.p,selectmode="multiple")
     scroll_v = Scrollbar(page,command=devicelist.yview)
     scroll_h = Scrollbar(page,command=devicelist.xview,orient="horizontal")
     devicelist.config(xscrollcommand=scroll_h.set,yscrollcommand=scroll_v.set)
-    scroll_v.grid(row=3,column=4,sticky="NSEW")
-    scroll_h.grid(row=4,column=1,columnspan=3,sticky="NSEW")
-    devicelist.grid(row=3,column=1,columnspan=3,sticky="NSEW")
-    Button(page,text="Add new",font=fonts.p,command=lambda:AddDevice(devicelist)).grid(row=5,column=1)
-    Button(page,text="Remove selected",font=fonts.p,command=lambda:RemoveDevice(devicelist,page)).grid(row=5,column=3)
-    Button(page,text="Set as default device",font=fonts.p,command=lambda:SetDefaultDevice(devicelist,page)).grid(row=5,column=2)
+    scroll_v.grid(row=4,column=4,sticky="NSEW")
+    scroll_h.grid(row=5,column=1,columnspan=3,sticky="NSEW")
+    devicelist.grid(row=4,column=1,columnspan=3,sticky="NSEW")
+    Button(page,text="Add new",font=fonts.p,command=lambda:AddDevice(devicelist)).grid(row=6,column=1)
+    Button(page,text="Remove selected",font=fonts.p,command=lambda:RemoveDevice(devicelist,page)).grid(row=6,column=3)
+    Button(page,text="Set as default device",font=fonts.p,command=lambda:SetDefaultDevice(devicelist,page)).grid(row=6,column=2)
     for i in range(len(settings["devices"])): devicelist.insert(i,FormatDeviceName(i))
     page.mainloop()
+    if settings["id"] != deviceid.get():
+        settings["id"] = deviceid.get()
+        SaveSettings()
 def AddDevice(listbox):
     newname = askstring("Add device","Please enter the name of the new device")
     if newname != None and newname != "":
@@ -171,10 +179,11 @@ def Status(devsel):
     win.grid_columnconfigure(2,weight=1)
     win.grid_rowconfigure(4,weight=1)
     table = [Listbox(win,font=fonts.p,selectmode="none",justify="center"),Listbox(win,font=fonts.p,selectmode="none",justify="center")]
-    refresh = Entry(win)
+    refresh = Entry(win,text="10")
     Label(win,text="Live Device Status",font=fonts.h1).grid(row=1,column=1,columnspan=3,sticky="NSEW")
-    Label(win,text="Refresh frequency (sec)",font=fonts.p).grid(row=2,column=1,sticky="NSE")
+    Label(win,text="Refresh period (sec)",font=fonts.p).grid(row=2,column=1,sticky="NSE")
     refresh.grid(row=2,column=2,sticky="NSW")
+    refresh.insert(0,"10")
     Label(win,text="Name",font=fonts.h2).grid(row=3,column=1,sticky="NSEW")
     Label(win,text="Status",font=fonts.h2).grid(row=3,column=2,sticky="NSEW")
     table[0].grid(row=4,column=1,sticky="NSEW")
@@ -203,24 +212,38 @@ def sleeptime(refresh):
         else: return number
     except ValueError: return 10
 
-def TestPins():
-    ipaddress = DeviceIpAddress(devsel.get())
-    try:
-        window = Tk()
-        window.title("Test pins - On/Off Monitor")
-        Label(window,text="Test pins").grid(row=1,column=1,sticky="NSEW")
-        pinlist = Listbox(window)
-        pinlist.grid(row=2,column=1,sticky="NSEW")
-        pins = json.loads(GetData(ipaddress,"/pinnames"))
-        for pin in pinnames:
-            pins.insert(len(pinnames),pin)
-        Button(window,text="Set",command=lambda:SendPinRequest(ipaddress,pinlist)).grid(row=3,column=1,sticky="NSEW")
-        status = Label(window)
-        status.grid(row=4,column=1,sticky="NSEW")
-def SendPinRequest(ipaddress,pinlist):
-    code = ""
-    for i in range(len(pinnam:
-        code += GetData(ipaddress,"/pinaccess",[["state","1"]])#
+class TestPins:
+    def __init__(this):
+        this.ipaddress = DeviceIPAddress(devsel.get())
+        try:
+            this.pins = loads(GetBody(GetData(this.ipaddress,"/pinnames",[["id",settings["id"]]])))
+            this.window = Tk()
+            this.window.title("Test pins - On/Off Monitor (using ID \"" + settings["id"] + "\")")
+            this.window.grid_columnconfigure(1,weight=1)
+            this.window.grid_rowconfigure(2,weight=1)
+            Label(this.window,text="Test pins",font=fonts.h1).grid(row=1,column=1,columnspan=2,sticky="NSEW")
+            this.pinlist = Listbox(this.window,font=fonts.p)
+            this.pinlist.grid(row=2,column=1,sticky="NSEW")
+            scrolly = Scrollbar(this.window,command=this.pinlist.yview)
+            scrollx = Scrollbar(this.window,command=this.pinlist.xview,orient="horizontal")
+            scrolly.grid(row=2,column=2,sticky="NSEW")
+            scrollx.grid(row=3,column=1,sticky="NSEW")
+            this.pinlist.config(yscrollcommand=scrolly.set,xscrollcommand=scrollx.set)
+            this.pinstates = [False]*len(this.pins)
+            for pin in this.pins:
+                this.pinlist.insert("end",pin)
+            this.pinlist.bind("<<ListboxSelect>>",this.SendPinRequest)
+        except ConnectionRefusedError: ConnectionRefused(devsel.get(),window)
+    def SendPinRequest(this,e):
+        try:
+            item = this.pinlist.curselection()[0]
+            print(settings["id"],"id\t","0" if this.pinstates[item] else "1","state")
+            if GetData(this.ipaddress,"/pinaccess",[["state","0" if this.pinstates[item] else "1"],["pin",this.pinlist.get(item)],["id",settings["id"]]]) == "1":
+                this.pinstates[item] = not this.pinstates[item]
+                this.pinlist.config(item,bg="green" if this.pinstates[item] else "red")
+            else:
+                showerror("Test pins - On/Off Monitor","There was an error changing the state of this pin. Please check your connection to the On/Off Monitor device and that you are using a valid device ID")
+        except ConnectionRefusedError: ConnectionRefused(devsel.get(),this.window)
 
 window = Tk()
 window.title("On/Off Monitor")
@@ -277,5 +300,6 @@ Radiobutton(window,text="On/Off Monitor and device",variable=sdweb,value="all",f
 Button(window,text="Shut down",command=ShutDown,font=fonts.p).grid(row=8,column=2)
 
 Button(window,text="Live Device Status",font=fonts.p,command=lambda:Status(devsel)).grid(row=8,column=3)
+Button(window,text="Test pins",font=fonts.p,command=TestPins).grid(row=9,column=3)
 CheckDefaultDevice()
 window.mainloop()
