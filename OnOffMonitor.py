@@ -21,8 +21,7 @@ def GetData(address,path,postlist=[]):
     if len(addressparts) == 1: addressparts.append(80)
     clientsocket = socket(AF_INET,SOCK_STREAM)
     clientsocket.connect((addressparts[0], int(addressparts[1])))
-    cmd = (method+' '+path+' HTTP/1.1\r\n\r\n'+post).encode()
-    clientsocket.send(cmd)
+    clientsocket.send((method+' '+path+' HTTP/1.1\r\n\r\n'+post).encode())
     data = "".encode()
     while True:
         newdata = clientsocket.recv(512)

@@ -29,64 +29,61 @@ def AddMenubarCommands(menu,commands):
     for command in commands:
         if len(command) == 2: menu.add_command(label=command[0],command=command[1])
         else: menu.add_separator()
-def Settings():
-    page = Toplevel()
-    page.title("On/Off Monitor Settings")
-    page.grid_rowconfigure(1,weight=0)
-    page.grid_rowconfigure(2,weight=0)
-    page.grid_rowconfigure(3,weight=1)
-    page.grid_rowconfigure(4,weight=0)
-    page.grid_rowconfigure(5,weight=0)
-    page.grid_columnconfigure(1,weight=1)
-    page.grid_columnconfigure(2,weight=1)
-    page.grid_columnconfigure(3,weight=1)
-    page.grid_columnconfigure(4,weight=0)
-    Label(page,text="Settings",font=fonts.h1).grid(row=1,column=1,columnspan=3,sticky="NSEW")
-    Label(page,text="This device ID",font=fonts.p).grid(row=2,column=1,sticky="NSEW")
-    deviceid = StringVar()
-    deviceidentry = Entry(page,font=fonts.p,textvariable=StringVar())
-    deviceidentry.grid(row=2,column=2,columnspan=2,sticky="NSEW")
-    deviceidentry.insert(0,settings["id"])
-    Label(page,text="Devices",font=fonts.h2).grid(row=3,column=1,columnspan=3,sticky="NSEW")
-    devicelist = Listbox(page,font=fonts.p,selectmode="multiple")
-    scroll_v = Scrollbar(page,command=devicelist.yview)
-    scroll_h = Scrollbar(page,command=devicelist.xview,orient="horizontal")
-    devicelist.config(xscrollcommand=scroll_h.set,yscrollcommand=scroll_v.set)
-    scroll_v.grid(row=4,column=4,sticky="NSEW")
-    scroll_h.grid(row=5,column=1,columnspan=3,sticky="NSEW")
-    devicelist.grid(row=4,column=1,columnspan=3,sticky="NSEW")
-    Button(page,text="Add new",font=fonts.p,command=lambda:AddDevice(devicelist)).grid(row=6,column=1)
-    Button(page,text="Remove selected",font=fonts.p,command=lambda:RemoveDevice(devicelist,page)).grid(row=6,column=3)
-    Button(page,text="Set as default device",font=fonts.p,command=lambda:SetDefaultDevice(devicelist,page)).grid(row=6,column=2)
-    for i in range(len(settings["devices"])): devicelist.insert(i,FormatDeviceName(i))
-    page.mainloop()
-    if settings["id"] != deviceid.get():
-        settings["id"] = deviceid.get()
+class Settings:
+    def __init__(this):
+        this.window = Toplevel()
+        this.window.title("On/Off Monitor Settings")
+        this.window.grid_rowconfigure(4,weight=1)
+        this.window.grid_columnconfigure(1,weight=1)
+        this.window.grid_columnconfigure(2,weight=1)
+        this.window.grid_columnconfigure(3,weight=1)
+        Label(this.window,text="Settings",font=fonts.h1).grid(row=1,column=1,columnspan=3,sticky="NSEW")
+        Label(this.window,text="This device ID",font=fonts.p).grid(row=2,column=1,sticky="NSE")
+        this.deviceid = Entry(this.window,font=fonts.p)
+        this.deviceid.grid(row=2,column=2,sticky="NSEW")
+        this.deviceid.insert(0,settings["id"])
+        Button(this.window,text="Save",font=fonts.p,command=this.SaveDeviceId()).grid(row=2,column=3,sticky="NSW")
+        Label(this.window,text="Devices",font=fonts.h2).grid(row=3,column=1,columnspan=3,sticky="NSEW")
+        this.devicelist = Listbox(this.window,font=fonts.p,selectmode="multiple")
+        scroll_v = Scrollbar(this.window,command=this.devicelist.yview)
+        scroll_h = Scrollbar(this.window,command=this.devicelist.xview,orient="horizontal")
+        this.devicelist.config(xscrollcommand=scroll_h.set,yscrollcommand=scroll_v.set)
+        scroll_v.grid(row=4,column=4,sticky="NSEW")
+        scroll_h.grid(row=5,column=1,columnspan=3,sticky="NSEW")
+        this.devicelist.grid(row=4,column=1,columnspan=3,sticky="NSEW")
+        Button(this.window,text="Add new",font=fonts.p,command=this.AddDevice).grid(row=6,column=1)
+        Button(this.window,text="Remove selected",font=fonts.p,command=this.RemoveDevice).grid(row=6,column=3)
+        Button(this.window,text="Set as default device",font=fonts.p,command=lambda:SetDefaultDevice(this.devicelist,this.window)).grid(row=6,column=2)
+        for i in range(len(settings["devices"])): this.devicelist.insert(i,FormatDeviceName(i))
+        this.window.mainloop()
+    def AddDevice(this):
+        newname = askstring("Add device","Please enter the name of the new device")
+        if newname != None and newname != "":
+            newip = askstring("Add device","Please enter the IP address with port number (if required) of "+newname)
+            if ValidateIPAddress(newip):
+                settings["devices"].append([newname,newip])
+                this.devicelist.insert(len(settings["devices"]),newname+" ("+newip+")")
+                SaveSettings()
+                devicemenu["menu"].add_command(label=newname+" ("+newip+")")
+    def RemoveDevice(this):
+        index = this.devicelist.curselection()
+        if len(index)>0:
+            if askyesno("Remove device","Are you sure you want to delete the selected devices?",parent=this.window):
+                deleted = "Removed device(s):"
+                for i in range(len(index)-1,-1,-1):
+                    delitem=settings["devices"].pop(index[i])
+                    deleted += "\n" + delitem[0] + " (" + delitem[1] + ")"
+                    this.devicelist.delete(index[i])
+                    devicemenu["menu"].delete(index[i])
+                if settings["defaultip"] in index:
+                    CheckDefaultDevice(updated=True)
+                    deleted+="\nSet "+FormatDeviceName(0)+" as the default device"
+                SaveSettings()
+                showinfo("Remove device",deleted,parent=this.window)
+    def SaveDeviceId(this):
+        settings["id"] = this.deviceid.get()
         SaveSettings()
-def AddDevice(listbox):
-    newname = askstring("Add device","Please enter the name of the new device")
-    if newname != None and newname != "":
-        newip = askstring("Add device","Please enter the IP address with port number (if required) of "+newname)
-        if ValidateIPAddress(newip):
-            settings["devices"].append([newname,newip])
-            listbox.insert(len(settings["devices"]),newname+" ("+newip+")")
-            SaveSettings()
-            devicemenu["menu"].add_command(label=newname+" ("+newip+")")
-def RemoveDevice(listbox,window):
-    index=listbox.curselection()
-    if len(index)>0:
-        if askyesno("Remove device","Are you sure you want to delete the selected devices?",parent=window):
-            deleted = "Removed device(s):"
-            for i in range(len(index)-1,-1,-1):
-                delitem=settings["devices"].pop(index[i])
-                deleted += "\n" + delitem[0] + " (" + delitem[1] + ")"
-                listbox.delete(index[i])
-                devicemenu["menu"].delete(index[i])
-            if settings["defaultip"] in index:
-                CheckDefaultDevice(updated=True)
-                deleted+="\nSet "+FormatDeviceName(0)+" as the default device"
-            SaveSettings()
-            showinfo("Remove device",deleted,parent=window)
+
 def LogFileList():
     device = devsel.get()
     page = Toplevel()
@@ -217,7 +214,7 @@ class TestPins:
         this.ipaddress = DeviceIPAddress(devsel.get())
         try:
             this.pins = loads(GetBody(GetData(this.ipaddress,"/pinnames",[["id",settings["id"]]])))
-            this.window = Tk()
+            this.window = Toplevel()
             this.window.title("Test pins - On/Off Monitor (using ID \"" + settings["id"] + "\")")
             this.window.grid_columnconfigure(1,weight=1)
             this.window.grid_rowconfigure(2,weight=1)
@@ -237,13 +234,17 @@ class TestPins:
     def SendPinRequest(this,e):
         try:
             item = this.pinlist.curselection()[0]
-            print(settings["id"],"id\t","0" if this.pinstates[item] else "1","state")
-            if GetData(this.ipaddress,"/pinaccess",[["state","0" if this.pinstates[item] else "1"],["pin",this.pinlist.get(item)],["id",settings["id"]]]) == "1":
+            if GetBody(GetData(this.ipaddress,"/pinaccess",[["state","0" if this.pinstates[item] else "1"],["pin",this.pinlist.get(item).replace(" ","+")],["id",settings["id"]]])) == "1":
                 this.pinstates[item] = not this.pinstates[item]
-                this.pinlist.config(item,bg="green" if this.pinstates[item] else "red")
+                if this.pinstates[item]:
+                    this.pinlist.itemconfig(item,bg="#00e800",fg="#000000")
+                else:
+                    this.pinlist.itemconfig(item,bg="#ea0000",fg="#ffffff")
+                this.pinlist.selection_clear(item)
             else:
-                showerror("Test pins - On/Off Monitor","There was an error changing the state of this pin. Please check your connection to the On/Off Monitor device and that you are using a valid device ID")
+                showerror("Test pins - On/Off Monitor","There was an error changing the state of this pin. Please check your connection to the On/Off Monitor device and that you are using a valid device ID",parent=this.window)
         except ConnectionRefusedError: ConnectionRefused(devsel.get(),this.window)
+        except IndexError: pass
 
 window = Tk()
 window.title("On/Off Monitor")
