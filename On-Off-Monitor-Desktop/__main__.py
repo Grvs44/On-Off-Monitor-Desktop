@@ -1,4 +1,5 @@
-from OnOffMonitor import *
+try: from .OnOffMonitor import *
+except ImportError: from OnOffMonitor import *
 from time import sleep
 class Home:
     def __init__(this):

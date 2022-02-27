@@ -1,5 +1,6 @@
 from socket import socket,AF_INET,SOCK_STREAM,SHUT_WR
 from json import loads,load,dump
+import os
 try:
     from tkinter import *
     from tkinter.filedialog import asksaveasfile
@@ -10,6 +11,10 @@ except ImportError:
     from tkFileDialog import asksaveasfile
     from tkMessageBox import showinfo,askyesno,showerror
     from tkSimpleDialog import askstring
+settingspath = os.path.join(os.path.dirname(__file__),"../On-Off-Monitor-Desktop.data")
+if not os.path.isdir(settingspath):
+    os.mkdir(settingspath)
+settingspath = os.path.join(settingspath,"settings.json")
 def GetData(address,path,postlist=[]):
     method = "GET"
     if len(postlist)>0: method = "POST"
@@ -37,7 +42,7 @@ def ListToCsv(header,item):
             if j+1 != len(item[i]): csv+=","
         if i+1 != len(item): csv+="\n"
     return csv
-def GetSettings(path="settings.json"):
+def GetSettings(path=settingspath):
     read = {"defaultip":None,"devices":[],"id":""}
     try:
         f=open(path,"r")
@@ -45,7 +50,7 @@ def GetSettings(path="settings.json"):
         f.close()
     except FileNotFoundError: pass
     return read 
-def SaveSettings(path="settings.json"):
+def SaveSettings(path=settingspath):
     f=open(path,"w")
     dump(settings,f)
     f.close()
