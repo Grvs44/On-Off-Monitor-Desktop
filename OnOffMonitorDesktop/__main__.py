@@ -212,7 +212,7 @@ class LogFileList():
             data = loads(GetBody(GetData(DeviceIPAddress(this.device),"/logfilelist",postlist=[["app","1"]])))
             this.devicelist.delete(0,"end")
             for i in range(len(data)): this.devicelist.insert(i,data[i][:4] + "/" + data[i][4:6] + "/" + data[i][6:8])
-        except ConnectionRefusedError: ConnectionRefused(this.device,home.window)
+        except (ConnectionRefusedError,JSONDecodeError): ConnectionRefused(this.device,this.page)
     def DeleteLogFile(this):
         if len(this.devicelist.curselection())>0:
             if askyesno("Delete log files","Are you sure you want to delete the selected items?",parent=this.page):  
@@ -222,19 +222,19 @@ class LogFileList():
                     try:
                         response+=GetBody(GetData(DeviceIPAddress(this.device),"/deletelocallog",postlist=[["app","1"],["lognum",str(index[i])]]))+"\n"
                         this.devicelist.delete(index[i])
-                    except ConnectionRefusedError: ConnectionRefused(this.device,home.window)
+                    except ConnectionRefusedError: ConnectionRefused(this.device,this.page)
                 showinfo("Delete log files",response,parent=this.page)
     def OpenLogFile(this):
         selection = this.devicelist.curselection()
         if len(selection)>0:
-            f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")])
+            f = asksaveasfile(title="Save log file as...",defaultextension=".csv",filetypes=[("Comma-separated values format","*.csv")],parent=this.page)
             if f != None:
                 try:
                     data=[]
                     for index in selection: data.extend(loads(GetBody(GetData(DeviceIPAddress(this.device),"/logfile",[["lognum",str(index)],["app","1"]]))))
                     f.write(ListToCsv("Date,Time,Device,Status",data))
-                    showinfo("Open log file","Log file saved to "+f.name)
-                except ConnectionRefusedError: ConnectionRefused(this.device,home.window)
+                    showinfo("Open log file","Log file saved to "+f.name,parent=this.page)
+                except ConnectionRefusedError: ConnectionRefused(this.device,this.page)
                 f.close()
 def ConnectionRefused(device,window): showerror("On/Off Monitor",device + " could not be reached. Please check that it is running On/Off Monitor and connected to the same network.",parent=window)
 
@@ -247,7 +247,7 @@ class Status:
             showerror("Live Device Status - On/Off Monitor","Invalid IP Address",parent=home.window)
             return
         from threading import Thread
-        this.win = Tk()
+        this.win = Toplevel()
         this.win.title("Live Device Status - On/Off Monitor")
         this.win.grid_columnconfigure(1,weight=1)
         this.win.grid_columnconfigure(2,weight=1)
@@ -276,8 +276,8 @@ class Status:
                 sleep(this.sleeptime())
         except TclError: pass # When win closes and window is still open
         except RuntimeError: pass # When win closes and window is already closed
-        except ConnectionRefusedError:
-            ConnectionRefused(this.devsel.get(),this.win)
+        except (ConnectionRefusedError,JSONDecodeError):
+            ConnectionRefused(home.devsel.get(),this.win)
             this.win.destroy()
     def sleeptime(this):
         try:
@@ -308,7 +308,7 @@ class TestPins:
             for pin in this.pins:
                 this.pinlist.insert("end",pin)
             this.pinlist.bind("<<ListboxSelect>>",this.SendPinRequest)
-        except ConnectionRefusedError: ConnectionRefused(devsel.get(),home.window)
+        except (ConnectionRefusedError,JSONDecodeError): ConnectionRefused(home.devsel.get(),home.window)
     def SendPinRequest(this,e):
         try:
             item = this.pinlist.curselection()[0]
@@ -321,7 +321,7 @@ class TestPins:
                 this.pinlist.selection_clear(item)
             else:
                 showerror("Test pins - On/Off Monitor","There was an error changing the state of this pin. Please check your connection to the On/Off Monitor device and that you are using a valid device ID",parent=this.window)
-        except ConnectionRefusedError: ConnectionRefused(devsel.get(),this.window)
+        except ConnectionRefusedError: ConnectionRefused(home.devsel.get(),this.window)
         except IndexError: pass
 
 if __name__ == "__main__":

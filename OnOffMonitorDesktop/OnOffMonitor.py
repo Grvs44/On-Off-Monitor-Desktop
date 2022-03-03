@@ -1,5 +1,5 @@
 from socket import socket,AF_INET,SOCK_STREAM,SHUT_WR
-from json import loads,load,dump
+from json import *
 import os
 try:
     from tkinter import *
