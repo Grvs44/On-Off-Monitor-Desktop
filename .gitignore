@@ -4,3 +4,5 @@ __pycache__
 *.csv
 dist
 *.data
+*.pyc
+dist
