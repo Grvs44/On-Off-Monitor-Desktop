@@ -1,6 +1,6 @@
 from socket import socket,AF_INET,SOCK_STREAM,SHUT_WR
 from json import *
-import os
+import os, pickle
 try:
     from tkinter import *
     from tkinter.filedialog import asksaveasfile
@@ -15,7 +15,7 @@ settingspath = os.path.join(os.path.dirname(__file__),"../On-Off-Monitor-Desktop
 if not os.path.isdir(settingspath):
     os.mkdir(settingspath)
 settingspath = os.path.join(settingspath,"settings.json")
-def GetData(address,path,postlist=[]):
+def GetData(address,path,postlist=[],binary=False):
     method = "GET"
     if len(postlist)>0: method = "POST"
     post = ""
@@ -33,7 +33,8 @@ def GetData(address,path,postlist=[]):
         if len(newdata) < 1: break
         data += newdata
     clientsocket.close()
-    return data.decode()
+    if binary: return data
+    else: return data.decode()
 def ListToCsv(header,item):
     csv=header+"\n"
     for i in range(len(item)):

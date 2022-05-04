@@ -231,7 +231,7 @@ class LogFileList():
             if f != None:
                 try:
                     data=[]
-                    for index in selection: data.extend(loads(GetBody(GetData(DeviceIPAddress(this.device),"/logfile",[["lognum",str(index)],["app","1"]]))))
+                    for index in selection: data.extend(pickle.loads(GetData(DeviceIPAddress(this.device),"/logfile",[["lognum",str(index)],["app","1"]],True)))
                     f.write(ListToCsv("Date,Time,Device,Status",data))
                     showinfo("Open log file","Log file saved to "+f.name,parent=this.page)
                 except ConnectionRefusedError: ConnectionRefused(this.device,this.page)
